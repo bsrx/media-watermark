@@ -66,7 +66,8 @@ public class MediaItem {
                 return nil
             }
         } else {
-            sourceAsset = AVURLAsset(url: url)
+            let options: [String : Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
+            sourceAsset = AVURLAsset(url: url, options: options)
         }
     }
     

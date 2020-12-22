@@ -18,26 +18,29 @@ extension MediaProcessor {
     func processVideoWithElements(item: MediaItem, completion: @escaping ProcessCompletionHandler) {
         let mixComposition = AVMutableComposition()
         let compositionVideoTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let clipVideoTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.video).first
-        let clipAudioTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.audio).first
+        guard let clipVideoTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.video).first,
+            let clipAudioTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.audio).first else {
+                completion(MediaProcessResult(processedUrl: nil, image: nil), nil)
+                return
+        }
+        
+        let duration = clipVideoTrack.timeRange.duration
         
         do {
-            try compositionVideoTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: item.sourceAsset.duration), of: clipVideoTrack!, at: CMTime.zero)
+            try compositionVideoTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: duration), of: clipVideoTrack, at: CMTime.zero)
         } catch {
             completion(MediaProcessResult(processedUrl: nil, image: nil), error)
         }
         
-        if (clipAudioTrack != nil) {
-            let compositionAudioTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        let compositionAudioTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
 
-            do {
-                try compositionAudioTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: item.sourceAsset.duration), of: clipAudioTrack!, at: CMTime.zero)
-            } catch {
-                completion(MediaProcessResult(processedUrl: nil, image: nil), error)
-            }
+        do {
+            try compositionAudioTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: duration), of: clipAudioTrack, at: CMTime.zero)
+        } catch {
+            completion(MediaProcessResult(processedUrl: nil, image: nil), error)
         }
        
-        compositionVideoTrack?.preferredTransform = (item.sourceAsset.tracks(withMediaType: AVMediaType.video).first?.preferredTransform)!
+        compositionVideoTrack?.preferredTransform = clipVideoTrack.preferredTransform
         
         let sizeOfVideo = item.size
         
@@ -54,12 +57,15 @@ extension MediaProcessor {
         parentLayer.addSublayer(optionalLayer)
         
         let videoComposition = AVMutableVideoComposition()
-        videoComposition.frameDuration = CMTimeMake(value: kMediaContentTimeValue, timescale: kMediaContentTimeScale)
+        let nominalFrameRate = clipVideoTrack.nominalFrameRate
+        let frameDuration = CMTime(value: 1000, timescale: CMTimeScale(nominalFrameRate * 1000))
+        
+        videoComposition.frameDuration = frameDuration
         videoComposition.renderSize = sizeOfVideo
         videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parentLayer)
         
         let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRangeMake(start: CMTime.zero, duration: mixComposition.duration)
+        instruction.timeRange = CMTimeRangeMake(start: CMTime.zero, duration: duration)
         
         let videoTrack = mixComposition.tracks(withMediaType: AVMediaType.video).first
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack!)
@@ -74,7 +80,7 @@ extension MediaProcessor {
         let exportSession = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality)
         exportSession?.videoComposition = videoComposition
         exportSession?.outputURL = processedUrl
-        exportSession?.outputFileType = AVFileType.mp4
+        exportSession?.outputFileType = AVFileType.mov
         
         exportSession?.exportAsynchronously(completionHandler: {
             if exportSession?.status == AVAssetExportSession.Status.completed {
