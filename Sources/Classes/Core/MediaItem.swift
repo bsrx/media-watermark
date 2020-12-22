@@ -9,7 +9,7 @@
 import UIKit
 import AVFoundation
 
-enum MediaItemType {
+public enum MediaItemType {
     case image
     case video
 }
