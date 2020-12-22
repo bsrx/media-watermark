@@ -22,7 +22,7 @@ public struct MediaProcessResult {
 public typealias ProcessCompletionHandler = ((_ result: MediaProcessResult, _ error: Error?) -> ())
 
 public class MediaItem {
-    var type: MediaItemType {
+    public var type: MediaItemType {
         return sourceAsset != nil ? .video : .image
     }
     
