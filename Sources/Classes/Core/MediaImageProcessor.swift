@@ -35,7 +35,8 @@ extension MediaProcessor {
         
         for element in item.mediaElements {
             if element.type == .view {
-                UIImage(view: element.contentView).draw(in: element.frame)
+                //UIImage(view: element.contentView).draw(in: element.frame)
+                element.contentView.getImage().draw(in: element.frame)
             } else if element.type == .image {
                 element.contentImage.draw(in: element.frame)
             } else if element.type == .text {
