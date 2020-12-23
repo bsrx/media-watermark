@@ -98,7 +98,7 @@ extension MediaProcessor {
     
             if element.type == .view {
                 elementLayer = CALayer()
-                elementLayer.contents = element.contentView.getImage().cgImage
+                elementLayer.contents = UIImage(view: element.contentView).cgImage
             } else if element.type == .image {
                 elementLayer = CALayer()
                 elementLayer.contents = element.contentImage.cgImage
