@@ -16,11 +16,14 @@ let kImageBytesCount: Int = 4
 
 extension UIImage {
     convenience init(view: UIView) {
-        UIGraphicsBeginImageContextWithOptions(view.bounds.size, view.isOpaque, 0.0)
-        view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        self.init(cgImage: (image?.cgImage)!)
+        let rendererFormat = UIGraphicsImageRendererFormat.default()
+        rendererFormat.opaque = view.isOpaque
+        let renderer = UIGraphicsImageRenderer(size: view.bounds.size, format: rendererFormat)
+        let snapshotImage = renderer.image { _ in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+        }
+        
+        self.init(cgImage: (snapshotImage.cgImage)!)
     }
     
     class func image(fromTexture: MTLTexture) -> UIImage {
