@@ -18,6 +18,7 @@ extension UIImage {
     convenience init(view: UIView) {
         let rendererFormat = UIGraphicsImageRendererFormat.default()
         rendererFormat.opaque = view.isOpaque
+        rendererFormat.scale = view.layer.contentsScale
         let renderer = UIGraphicsImageRenderer(size: view.bounds.size, format: rendererFormat)
         let snapshotImage = renderer.image { _ in
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
