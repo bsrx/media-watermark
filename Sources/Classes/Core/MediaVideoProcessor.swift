@@ -18,29 +18,26 @@ extension MediaProcessor {
     func processVideoWithElements(item: MediaItem, completion: @escaping ProcessCompletionHandler) {
         let mixComposition = AVMutableComposition()
         let compositionVideoTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        guard let clipVideoTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.video).first,
-            let clipAudioTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.audio).first else {
-                completion(MediaProcessResult(processedUrl: nil, image: nil), nil)
-                return
-        }
-        
-        let duration = clipVideoTrack.timeRange.duration
+        let clipVideoTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.video).first
+        let clipAudioTrack = item.sourceAsset.tracks(withMediaType: AVMediaType.audio).first
         
         do {
-            try compositionVideoTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: duration), of: clipVideoTrack, at: CMTime.zero)
+            try compositionVideoTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: clipVideoTrack!.timeRange.duration), of: clipVideoTrack!, at: CMTime.zero)
         } catch {
             completion(MediaProcessResult(processedUrl: nil, image: nil), error)
         }
         
-        let compositionAudioTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        if (clipAudioTrack != nil) {
+            let compositionAudioTrack = mixComposition.addMutableTrack(withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
 
-        do {
-            try compositionAudioTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: duration), of: clipAudioTrack, at: CMTime.zero)
-        } catch {
-            completion(MediaProcessResult(processedUrl: nil, image: nil), error)
+            do {
+                try compositionAudioTrack?.insertTimeRange(CMTimeRangeMake(start: CMTime.zero, duration: clipVideoTrack!.timeRange.duration), of: clipAudioTrack!, at: CMTime.zero)
+            } catch {
+                completion(MediaProcessResult(processedUrl: nil, image: nil), error)
+            }
         }
        
-        compositionVideoTrack?.preferredTransform = clipVideoTrack.preferredTransform
+        compositionVideoTrack?.preferredTransform = clipVideoTrack!.preferredTransform
         
         let sizeOfVideo = item.size
         
@@ -57,7 +54,7 @@ extension MediaProcessor {
         parentLayer.addSublayer(optionalLayer)
         
         let videoComposition = AVMutableVideoComposition()
-        let nominalFrameRate = clipVideoTrack.nominalFrameRate
+        let nominalFrameRate = clipVideoTrack!.nominalFrameRate
         let frameDuration = CMTime(value: 1000, timescale: CMTimeScale(nominalFrameRate * 1000))
         
         videoComposition.frameDuration = frameDuration
@@ -65,7 +62,7 @@ extension MediaProcessor {
         videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parentLayer)
         
         let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRangeMake(start: CMTime.zero, duration: duration)
+        instruction.timeRange = CMTimeRangeMake(start: CMTime.zero, duration: clipVideoTrack!.timeRange.duration)
         
         let videoTrack = mixComposition.tracks(withMediaType: AVMediaType.video).first
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack!)
